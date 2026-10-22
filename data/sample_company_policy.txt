@@ -1,0 +1,14 @@
+Company Leave Policy
+
+Full-time employees receive 20 paid vacation days annually.
+Leave requests must be submitted through the HR portal and approved by the employee's manager.
+
+Remote Work Policy
+
+Employees may request remote work with manager approval.
+Teams must maintain their normal communication and availability during working hours.
+
+Security Policy
+
+Employees must enable multi-factor authentication.
+Production credentials must be stored securely and must never be committed to Git.
