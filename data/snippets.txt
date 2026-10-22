@@ -1,0 +1,50 @@
+Company employees receive 20 annual paid vacation days.
+Employees must submit leave requests through the HR portal.
+The company provides health insurance to all full-time employees.
+Payroll is processed on the last working day of every month.
+New employees must complete onboarding during their first week.
+The standard workday begins at 9 AM and ends at 6 PM.
+Employees can request remote work with manager approval.
+The IT team manages employee laptops and software access.
+Password changes are required every 90 days.
+Employees must enable multi-factor authentication.
+The engineering team uses Python for backend development.
+The company backend services use FastAPI.
+PostgreSQL is the primary relational database.
+Redis is used for caching frequently accessed information.
+Docker is used to package applications into containers.
+Production services are monitored for errors and downtime.
+Code changes require a pull request before merging.
+Automated tests must pass before deployment.
+Developers should document public API endpoints.
+Git branches should use descriptive feature names.
+Customer support responds to tickets within one business day.
+Critical incidents must be escalated immediately.
+Customers can reset passwords using the account recovery page.
+Refund requests are reviewed by the finance department.
+Customer data must not be shared without authorization.
+Sales representatives record leads in the CRM system.
+The sales team reviews its pipeline every Monday.
+Discounts above 15 percent require management approval.
+Invoices are due within 30 calendar days.
+Marketing campaigns are reviewed before publication.
+The company publishes product updates every month.
+Website analytics are reviewed weekly.
+Customer feedback is collected through online surveys.
+Product managers prioritize features based on customer needs.
+New features require product approval before development.
+The design team maintains a shared component library.
+User interfaces must support mobile screen sizes.
+Accessibility should be considered during interface design.
+The company stores internal documents in a shared workspace.
+Confidential documents are accessible only to authorized staff.
+Employees must report suspected security incidents.
+Database backups run every night.
+Backup restoration is tested every month.
+Production credentials must be stored securely.
+The finance team prepares monthly expense reports.
+Business travel requires manager approval.
+Employees submit expense receipts within seven days.
+Recruitment interviews include technical and behavioral rounds.
+Candidates receive interview updates by email.
+Performance reviews take place twice each year.
