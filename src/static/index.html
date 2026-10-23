@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DocuChat | Enterprise Document RAG with Grounded Citations</title>
+  <meta name="description" content="Production-style RAG application with document upload, Supabase pgvector and FAISS search, grounded answers, and hallucination reduction.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base: #0B0F19;
+      --bg-surface: #111827;
+      --bg-surface-elevated: #1F2937;
+      --bg-accent: #374151;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-focus: #6366F1;
+      --text-primary: #F9FAFB;
+      --text-secondary: #9CA3AF;
+      --text-muted: #6B7280;
+      --primary: #6366F1;
+      --primary-hover: #4F46E5;
+      --primary-gradient: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+      --emerald: #10B981;
+      --amber: #F59E0B;
+      --rose: #F43F5E;
+      --font-heading: 'Outfit', sans-serif;
+      --font-body: 'Plus Jakarta Sans', sans-serif;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-full: 9999px;
+      --shadow-soft: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* Layout */
+    .app-container {
+      display: flex;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 360px;
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      padding: 24px;
+      gap: 24px;
+      overflow-y: auto;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-md);
+      background: var(--primary-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 700;
+      font-size: 20px;
+      box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+    }
+
+    .brand-title {
+      font-family: var(--font-heading);
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #FFFFFF 0%, #CBD5E1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .section-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    /* Backend Selector */
+    .backend-selector {
+      background: var(--bg-surface-elevated);
+      padding: 4px;
+      border-radius: var(--radius-md);
+      display: flex;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .backend-btn {
+      flex: 1;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .backend-btn.active {
+      background: var(--primary);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+    }
+
+    /* Upload Zone */
+    .upload-zone {
+      border: 2px dashed rgba(99, 102, 241, 0.3);
+      border-radius: var(--radius-lg);
+      padding: 24px 16px;
+      text-align: center;
+      background: rgba(99, 102, 241, 0.03);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .upload-zone:hover {
+      border-color: var(--primary);
+      background: rgba(99, 102, 241, 0.08);
+    }
+
+    .upload-zone svg {
+      width: 36px;
+      height: 36px;
+      stroke: var(--primary);
+      margin-bottom: 12px;
+    }
+
+    .upload-text {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .upload-subtext {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    #fileInput {
+      display: none;
+    }
+
+    .status-card {
+      background: var(--bg-surface-elevated);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      border: 1px solid var(--border-subtle);
+      font-size: 13px;
+    }
+
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .status-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .status-val {
+      font-weight: 600;
+      color: var(--emerald);
+    }
+
+    /* Sliders */
+    .slider-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .slider-item {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--primary);
+      height: 4px;
+      background: var(--bg-accent);
+      border-radius: var(--radius-full);
+      outline: none;
+    }
+
+    /* Main Chat Interface */
+    .main-chat {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      background: var(--bg-base);
+      position: relative;
+    }
+
+    .chat-header {
+      padding: 20px 32px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(17, 24, 39, 0.7);
+      backdrop-filter: blur(12px);
+    }
+
+    .header-info h1 {
+      font-family: var(--font-heading);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .header-badges {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      letter-spacing: 0.3px;
+    }
+
+    .badge-cloud {
+      background: rgba(99, 102, 241, 0.15);
+      color: #A5B4FC;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+    }
+
+    .badge-grounded {
+      background: rgba(16, 185, 129, 0.15);
+      color: #6EE7B7;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .badge-refusal {
+      background: rgba(59, 130, 246, 0.15);
+      color: #93C5FD;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    /* Messages Stream */
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .message {
+      display: flex;
+      gap: 16px;
+      max-width: 820px;
+    }
+
+    .message.user {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    .message-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .user .message-avatar {
+      background: #3B82F6;
+      color: #fff;
+    }
+
+    .assistant .message-avatar {
+      background: var(--primary-gradient);
+      color: #fff;
+    }
+
+    .message-body {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .message-bubble {
+      padding: 16px 20px;
+      border-radius: var(--radius-lg);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .user .message-bubble {
+      background: var(--primary);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+
+    .assistant .message-bubble {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      border-bottom-left-radius: 4px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    /* Citations in Answer */
+    .citation-tag {
+      display: inline-block;
+      background: rgba(99, 102, 241, 0.2);
+      color: #C7D2FE;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-family: monospace;
+      font-weight: 600;
+      border: 1px solid rgba(99, 102, 241, 0.4);
+      margin: 2px 4px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .citation-tag:hover {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    /* Retrieved Sources Panel below assistant message */
+    .sources-accordion {
+      margin-top: 10px;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+
+    .sources-toggle {
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    .sources-toggle:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .sources-list {
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .source-item {
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-surface-elevated);
+      font-size: 12px;
+      border-left: 3px solid var(--primary);
+    }
+
+    .source-meta {
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+
+    .source-text {
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+
+    /* Quick Chips */
+    .quick-chips {
+      padding: 0 32px 12px 32px;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+    }
+
+    .chip {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      padding: 6px 14px;
+      border-radius: var(--radius-full);
+      font-size: 12px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+    }
+
+    .chip:hover {
+      border-color: var(--primary);
+      color: var(--text-primary);
+      background: rgba(99, 102, 241, 0.1);
+    }
+
+    .chip.adv {
+      border-color: rgba(244, 63, 94, 0.3);
+      color: #FDA4AF;
+    }
+
+    .chip.adv:hover {
+      border-color: var(--rose);
+      background: rgba(244, 63, 94, 0.1);
+    }
+
+    /* Input Box */
+    .chat-input-area {
+      padding: 16px 32px 28px 32px;
+      border-top: 1px solid var(--border-subtle);
+      background: var(--bg-surface);
+    }
+
+    .input-form {
+      display: flex;
+      gap: 12px;
+      position: relative;
+    }
+
+    .input-form input {
+      flex: 1;
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 16px 20px;
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+
+    .input-form input:focus {
+      border-color: var(--border-focus);
+    }
+
+    .send-btn {
+      background: var(--primary-gradient);
+      border: none;
+      border-radius: var(--radius-lg);
+      padding: 0 24px;
+      color: #fff;
+      font-weight: 600;
+      font-size: 15px;
+      cursor: pointer;
+      transition: opacity 0.2s ease, transform 0.1s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .send-btn:hover {
+      opacity: 0.95;
+    }
+
+    .send-btn:active {
+      transform: scale(0.98);
+    }
+
+    /* Loader */
+    .typing-dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      margin-right: 3px;
+      background: var(--primary);
+      border-radius: 50%;
+      animation: pulse 1s infinite alternate;
+    }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes pulse {
+      0% { opacity: 0.3; transform: scale(0.8); }
+      100% { opacity: 1; transform: scale(1.2); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-container">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">D</div>
+      <div>
+        <div class="brand-title">DocuChat</div>
+        <div style="font-size: 11px; color: var(--text-muted);">Enterprise Document RAG</div>
+      </div>
+    </div>
+
+    <!-- Backend Switcher -->
+    <div>
+      <div class="section-label">Vector Store Backend</div>
+      <div class="backend-selector">
+        <button id="btnSupabase" class="backend-btn active" onclick="setBackend('supabase')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm4.24 10.74l-5.66 5.66a.71.71 0 01-1.01 0l-2.83-2.83a.71.71 0 010-1.01l5.66-5.66a.71.71 0 011.01 0l2.83 2.83c.28.28.28.73 0 1.01z"/></svg>
+          Supabase (Cloud)
+        </button>
+        <button id="btnFaiss" class="backend-btn" onclick="setBackend('faiss')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z"/></svg>
+          FAISS (Local)
+        </button>
+      </div>
+    </div>
+
+    <!-- Upload Zone -->
+    <div>
+      <div class="section-label">Document Ingestion</div>
+      <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+        <div class="upload-text" id="uploadStatusText">Upload PDF or DOCX</div>
+        <div class="upload-subtext">Automatic parse, chunk (200/40), and embed</div>
+        <input type="file" id="fileInput" accept=".pdf,.docx" onchange="handleFileUpload(event)">
+      </div>
+    </div>
+
+    <!-- System Status -->
+    <div>
+      <div class="section-label">Knowledge Base Status</div>
+      <div class="status-card">
+        <div class="status-row">
+          <span>Active Corpus</span>
+          <span class="status-val">sample_company_policy.pdf</span>
+        </div>
+        <div class="status-row">
+          <span>Embeddings</span>
+          <span>MiniLM-L6-v2 (384d)</span>
+        </div>
+        <div class="status-row">
+          <span>Grounding Mode</span>
+          <span class="status-val">Strict + Citations</span>
+        </div>
+        <div class="status-row">
+          <span>No-Answer Behavior</span>
+          <span style="color: #60A5FA;">Explicit Refusal</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Retrieval Sliders -->
+    <div class="slider-group">
+      <div class="section-label">RAG Hyperparameters</div>
+      <div class="slider-item">
+        <div class="slider-header">
+          <span>Similarity Threshold</span>
+          <span id="threshVal">0.20</span>
+        </div>
+        <input type="range" id="threshSlider" min="0.05" max="0.80" step="0.05" value="0.20" oninput="document.getElementById('threshVal').innerText = this.value">
+      </div>
+      <div class="slider-item">
+        <div class="slider-header">
+          <span>Top Chunks (k)</span>
+          <span id="kVal">3</span>
+        </div>
+        <input type="range" id="kSlider" min="1" max="5" step="1" value="3" oninput="document.getElementById('kVal').innerText = this.value">
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Chat Section -->
+  <main class="main-chat">
+    <header class="chat-header">
+      <div class="header-info">
+        <h1>Document Assistant</h1>
+        <div style="font-size: 12px; color: var(--text-muted);">Grounded answers strictly cited from verified company policy</div>
+      </div>
+      <div class="header-badges">
+        <div class="badge badge-cloud" id="activeBackendBadge">Supabase pgvector</div>
+        <div class="badge badge-grounded">Strictly Grounded (temp=0.0)</div>
+      </div>
+    </header>
+
+    <!-- Messages -->
+    <div class="chat-messages" id="messagesContainer">
+      <div class="message assistant">
+        <div class="message-avatar">AI</div>
+        <div class="message-body">
+          <div class="message-bubble">
+            Hello! I am DocuChat. Ask me any question about the company policies, leave entitlements, remote work rules, or credential security. Every answer will be strictly grounded in the document text with verifiable inline citations.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Question Chips -->
+    <div class="quick-chips">
+      <div class="chip" onclick="askQuickQuestion('How many vacation days do employees receive annually?')">Vacation Days</div>
+      <div class="chip" onclick="askQuickQuestion('What are the rules for working remotely?')">Remote Work Rules</div>
+      <div class="chip" onclick="askQuickQuestion('How should production credentials be protected?')">Security & Credentials</div>
+      <div class="chip adv" onclick="askQuickQuestion('What is the company 401(k) matching percentage?')">Adversarial: 401(k) Match (Refusal Test)</div>
+      <div class="chip adv" onclick="askQuickQuestion('Where is the Tokyo satellite office located?')">Adversarial: Tokyo Office (Refusal Test)</div>
+    </div>
+
+    <!-- Input Bar -->
+    <div class="chat-input-area">
+      <form class="input-form" onsubmit="handleSendMessage(event)">
+        <input type="text" id="userInput" placeholder="Ask a question about the uploaded company documents..." autocomplete="off">
+        <button type="submit" class="send-btn" id="sendBtn">
+          Ask
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        </button>
+      </form>
+    </div>
+  </main>
+</div>
+
+<script>
+  let activeBackend = 'supabase';
+
+  function setBackend(backend) {
+    activeBackend = backend;
+    document.getElementById('btnSupabase').classList.toggle('active', backend === 'supabase');
+    document.getElementById('btnFaiss').classList.toggle('active', backend === 'faiss');
+    document.getElementById('activeBackendBadge').innerText = backend === 'supabase' ? 'Supabase pgvector' : 'FAISS Local Index';
+  }
+
+  function formatCitationsInText(text) {
+    // Replace [Doc: ..., Page: ..., Chunk: ...] with formatted clickable badges
+    return text.replace(/\[Doc:\s*([^,]+),\s*Page:\s*([^,]+),\s*Chunk:\s*([^\]]+)\]/g, (match, doc, page, chunk) => {
+      return `<span class="citation-tag" title="Document: ${doc} | Page: ${page}">[${doc} p.${page} #c${chunk}]</span>`;
+    });
+  }
+
+  async function handleFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const statusEl = document.getElementById('uploadStatusText');
+    statusEl.innerText = `Ingesting ${file.name}...`;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch(`/api/upload?backend=${activeBackend}`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        statusEl.innerText = `Indexed ${data.chunks_stored} chunks!`;
+        appendSystemNotification(`Successfully indexed <strong>${file.name}</strong> (${data.chunks_stored} chunks stored into ${activeBackend.toUpperCase()}).`);
+      } else {
+        statusEl.innerText = 'Upload failed';
+        alert('Upload Error: ' + (data.detail || 'Unknown error'));
+      }
+    } catch (err) {
+      statusEl.innerText = 'Upload failed';
+      alert('Upload failed: ' + err.message);
+    }
+  }
+
+  function appendSystemNotification(htmlContent) {
+    const container = document.getElementById('messagesContainer');
+    const note = document.createElement('div');
+    note.style.textAlign = 'center';
+    note.style.fontSize = '12px';
+    note.style.color = '#10B981';
+    note.style.padding = '8px';
+    note.innerHTML = htmlContent;
+    container.appendChild(note);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function askQuickQuestion(text) {
+    document.getElementById('userInput').value = text;
+    handleSendMessage(new Event('submit'));
+  }
+
+  async function handleSendMessage(event) {
+    if (event) event.preventDefault();
+    const input = document.getElementById('userInput');
+    const question = input.value.trim();
+    if (!question) return;
+
+    input.value = '';
+    const container = document.getElementById('messagesContainer');
+
+    // 1. Append User Message
+    const userMsg = document.createElement('div');
+    userMsg.className = 'message user';
+    userMsg.innerHTML = `
+      <div class="message-avatar">U</div>
+      <div class="message-body">
+        <div class="message-bubble">${escapeHtml(question)}</div>
+      </div>
+    `;
+    container.appendChild(userMsg);
+
+    // 2. Append Loading Placeholder
+    const aiMsg = document.createElement('div');
+    aiMsg.className = 'message assistant';
+    aiMsg.innerHTML = `
+      <div class="message-avatar">AI</div>
+      <div class="message-body">
+        <div class="message-bubble" id="loadingBubble">
+          <span class="typing-dot"></span>
+          <span class="typing-dot"></span>
+          <span class="typing-dot"></span>
+        </div>
+      </div>
+    `;
+    container.appendChild(aiMsg);
+    container.scrollTop = container.scrollHeight;
+
+    const threshold = parseFloat(document.getElementById('threshSlider').value);
+    const count = parseInt(document.getElementById('kSlider').value);
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: question,
+          backend: activeBackend,
+          match_threshold: threshold,
+          match_count: count,
+        })
+      });
+
+      const data = await res.json();
+      const bubble = aiMsg.querySelector('.message-bubble');
+
+      if (!res.ok) {
+        bubble.innerText = 'Error: ' + (data.detail || 'Could not process query.');
+        return;
+      }
+
+      // Check if refusal or grounded
+      const isRefusal = data.validation.status === 'REFUSED';
+      const formattedAnswer = formatCitationsInText(escapeHtml(data.answer));
+
+      let badgeHtml = '';
+      if (isRefusal) {
+        badgeHtml = `<div class="badge badge-refusal" style="margin-bottom: 8px;">Safe Refusal (Zero Hallucination)</div>`;
+      } else {
+        const score = Math.round(data.validation.groundedness_score * 100);
+        badgeHtml = `<div class="badge badge-grounded" style="margin-bottom: 8px;">Grounded ${score}% | ${data.validation.found_citations.length} Verified Citations</div>`;
+      }
+
+      bubble.innerHTML = `${badgeHtml}<div>${formattedAnswer}</div>`;
+
+      // 3. Render Retrieved Sources Accordion
+      if (data.retrieved_chunks && data.retrieved_chunks.length > 0) {
+        const sourcesAccordion = document.createElement('div');
+        sourcesAccordion.className = 'sources-accordion';
+        
+        let sourcesHtml = '';
+        data.retrieved_chunks.forEach((chunk, i) => {
+          sourcesHtml += `
+            <div class="source-item">
+              <div class="source-meta">
+                <span>[${i + 1}] ${escapeHtml(chunk.source || 'Document')} (p. ${chunk.page || 1}, chunk #${chunk.chunk_index})</span>
+                <span style="color: #10B981;">Sim: ${(chunk.similarity).toFixed(3)}</span>
+              </div>
+              <div class="source-text">${escapeHtml(chunk.content)}</div>
+            </div>
+          `;
+        });
+
+        sourcesAccordion.innerHTML = `
+          <div class="sources-toggle" onclick="toggleSources(this)">
+            <span>View Retrieved Context (${data.retrieved_chunks.length} Chunks)</span>
+            <span>▼</span>
+          </div>
+          <div class="sources-list" style="display: none;">
+            ${sourcesHtml}
+          </div>
+        `;
+
+        aiMsg.querySelector('.message-body').appendChild(sourcesAccordion);
+      }
+
+    } catch (err) {
+      const bubble = aiMsg.querySelector('.message-bubble');
+      bubble.innerText = 'Network error: ' + err.message;
+    } finally {
+      container.scrollTop = container.scrollHeight;
+    }
+  }
+
+  function toggleSources(el) {
+    const list = el.nextElementSibling;
+    const isHidden = list.style.display === 'none';
+    list.style.display = isHidden ? 'flex' : 'none';
+    el.querySelector('span:last-child').innerText = isHidden ? '▲' : '▼';
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.innerText = text;
+    return div.innerHTML;
+  }
+</script>
+</body>
+</html>

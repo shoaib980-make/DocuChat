@@ -88,9 +88,18 @@ class DeterministicGroundedGenerator:
         stop_words = {
             "what", "where", "when", "how", "who", "which", "is", "are",
             "the", "a", "an", "do", "does", "did", "to", "for", "in", "of",
-            "and", "or", "company", "employee", "employees", "policy", "rules"
+            "and", "or", "company", "employee", "employees", "policy", "rules",
+            "through", "during"
         }
         keywords = question_words - stop_words
+
+        # Check for named entities or distinct proper nouns in original question
+        named_entities = set(re.findall(r"\b[A-Z][a-zA-Z0-9-]+\b", question))
+        named_entities -= {"What", "Where", "When", "How", "Who", "Which", "Is", "Are", "Do", "Does", "Through"}
+        for entity in named_entities:
+            entity_lower = entity.lower()
+            if not any(entity_lower in (c.get("content") or c.get("text", "")).lower() for c in chunks):
+                return REFUSAL_MESSAGE
 
         matched_sentences: list[tuple[str, str]] = []
 
@@ -101,13 +110,13 @@ class DeterministicGroundedGenerator:
             citation = f"[Doc: {source}, Page: {page}, Chunk: {chunk_idx}]"
 
             content = chunk.get("content", chunk.get("text", ""))
-            # Split into clean sentences
             raw_sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", content) if s.strip()]
 
             for sent in raw_sentences:
                 sent_words = set(re.findall(r"\w+", sent.lower()))
                 overlap = keywords & sent_words
-                if overlap:
+                # Require meaningful overlap (at least 2 words or >=30% of question keywords)
+                if len(overlap) >= 2 or (len(keywords) <= 2 and len(overlap) >= 1):
                     matched_sentences.append((sent, citation))
 
         if not matched_sentences:

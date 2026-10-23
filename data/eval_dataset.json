@@ -1,0 +1,137 @@
+[
+  {
+    "id": "EVAL-01",
+    "question": "How many vacation days do full-time employees receive annually?",
+    "type": "answerable",
+    "expected_document": "sample_company_policy.pdf",
+    "expected_page": 1,
+    "expected_answer_keywords": ["20", "paid vacation days", "annually"],
+    "expected_refusal": false
+  },
+  {
+    "id": "EVAL-02",
+    "question": "Through which system must leave requests be submitted?",
+    "type": "answerable",
+    "expected_document": "sample_company_policy.pdf",
+    "expected_page": 1,
+    "expected_answer_keywords": ["HR portal"],
+    "expected_refusal": false
+  },
+  {
+    "id": "EVAL-03",
+    "question": "Who must approve employee leave requests before they are taken?",
+    "type": "answerable",
+    "expected_document": "sample_company_policy.pdf",
+    "expected_page": 1,
+    "expected_answer_keywords": ["manager", "approved"],
+    "expected_refusal": false
+  },
+  {
+    "id": "EVAL-04",
+    "question": "Are employees allowed to request remote work?",
+    "type": "answerable",
+    "expected_document": "sample_company_policy.pdf",
+    "expected_page": 1,
+    "expected_answer_keywords": ["remote work", "manager approval"],
+    "expected_refusal": false
+  },
+  {
+    "id": "EVAL-05",
+    "question": "What communication standards must remote teams maintain during working hours?",
+    "type": "answerable",
+    "expected_document": "sample_company_policy.pdf",
+    "expected_page": 1,
+    "expected_answer_keywords": ["normal communication", "availability", "working hours"],
+    "expected_refusal": false
+  },
+  {
+    "id": "EVAL-06",
+    "question": "What authentication security mechanism must all employees enable?",
+    "type": "answerable",
+    "expected_document": "sample_company_policy.pdf",
+    "expected_page": 1,
+    "expected_answer_keywords": ["multi-factor authentication", "MFA"],
+    "expected_refusal": false
+  },
+  {
+    "id": "EVAL-07",
+    "question": "Where are production credentials forbidden to be committed?",
+    "type": "answerable",
+    "expected_document": "sample_company_policy.pdf",
+    "expected_page": 1,
+    "expected_answer_keywords": ["never be committed to Git", "Git"],
+    "expected_refusal": false
+  },
+  {
+    "id": "EVAL-08",
+    "question": "How should production credentials and secrets be handled according to policy?",
+    "type": "answerable",
+    "expected_document": "sample_company_policy.pdf",
+    "expected_page": 1,
+    "expected_answer_keywords": ["stored securely"],
+    "expected_refusal": false
+  },
+  {
+    "id": "EVAL-09",
+    "question": "Does leave approval require HR signoff or manager approval?",
+    "type": "answerable",
+    "expected_document": "sample_company_policy.pdf",
+    "expected_page": 1,
+    "expected_answer_keywords": ["manager", "HR portal"],
+    "expected_refusal": false
+  },
+  {
+    "id": "EVAL-10",
+    "question": "What are the rules regarding employee availability while working remotely?",
+    "type": "answerable",
+    "expected_document": "sample_company_policy.pdf",
+    "expected_page": 1,
+    "expected_answer_keywords": ["availability", "normal communication", "working hours"],
+    "expected_refusal": false
+  },
+  {
+    "id": "EVAL-11",
+    "question": "What is the company 401(k) matching percentage for retirement plans?",
+    "type": "unanswerable",
+    "expected_document": null,
+    "expected_page": null,
+    "expected_answer_keywords": [],
+    "expected_refusal": true
+  },
+  {
+    "id": "EVAL-12",
+    "question": "How much annual gym membership reimbursement can employees claim?",
+    "type": "unanswerable",
+    "expected_document": null,
+    "expected_page": null,
+    "expected_answer_keywords": [],
+    "expected_refusal": true
+  },
+  {
+    "id": "EVAL-13",
+    "question": "Who is the Chief Executive Officer (CEO) and what is their office address?",
+    "type": "unanswerable",
+    "expected_document": null,
+    "expected_page": null,
+    "expected_answer_keywords": [],
+    "expected_refusal": true
+  },
+  {
+    "id": "EVAL-14",
+    "question": "What is the maximum daily meal allowance during international business trips?",
+    "type": "unanswerable",
+    "expected_document": null,
+    "expected_page": null,
+    "expected_answer_keywords": [],
+    "expected_refusal": true
+  },
+  {
+    "id": "EVAL-15",
+    "question": "What are the operating hours of the Tokyo, Japan satellite office?",
+    "type": "unanswerable",
+    "expected_document": null,
+    "expected_page": null,
+    "expected_answer_keywords": [],
+    "expected_refusal": true
+  }
+]
