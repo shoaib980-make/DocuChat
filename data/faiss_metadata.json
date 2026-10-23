@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "document_id": "sample_company_policy.pdf",
+    "chunk_index": 0,
+    "content": "Company Policies\nCompany Leave Policy\nFull-time employees receive 20 paid vacation days annually. Leave requests must be submitted through the HR\nportal and approved by the employee's manager.\nRemote",
+    "source": "sample_company_policy.pdf",
+    "page": 1
+  },
+  {
+    "id": 2,
+    "document_id": "sample_company_policy.pdf",
+    "chunk_index": 1,
+    "content": "by the employee's manager.\nRemote Work Policy\nEmployees may request remote work with manager approval. Teams must maintain normal communication and\navailability during working hours.\nSecurity",
+    "source": "sample_company_policy.pdf",
+    "page": 1
+  },
+  {
+    "id": 3,
+    "document_id": "sample_company_policy.pdf",
+    "chunk_index": 2,
+    "content": "during working hours.\nSecurity Policy\nEmployees must enable multi-factor authentication. Production credentials must be stored securely and must never\nbe committed to Git.",
+    "source": "sample_company_policy.pdf",
+    "page": 1
+  }
+]

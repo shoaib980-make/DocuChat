@@ -73,16 +73,16 @@ def extract_document(file_path: str | Path) -> list[dict[str, Any]]:
 
     return records
 
-
 def chunk_text(
     text: str,
     chunk_size: int = 500,
     overlap: int = 100,
 ) -> list[str]:
     """
-    Split text into overlapping character-based chunks.
+    Create overlapping character-based chunks.
 
-    chunk_size and overlap are measured in characters, not tokens.
+    Prefer whitespace boundaries to avoid splitting words.
+    For text with no whitespace, use exact character boundaries.
     """
     if chunk_size <= 0:
         raise ValueError("chunk_size must be greater than zero.")
@@ -97,22 +97,39 @@ def chunk_text(
 
     chunks = []
     start = 0
+    text_length = len(text)
 
-    while start < len(text):
-        end = min(start + chunk_size, len(text))
+    while start < text_length:
+        end = min(start + chunk_size, text_length)
+
+        if end < text_length:
+            # Prefer a whitespace boundary near the target end.
+            boundary = text.rfind(" ", start, end)
+
+            if boundary > start:
+                end = boundary
+
         chunk = text[start:end].strip()
 
         if chunk:
             chunks.append(chunk)
 
-        if end == len(text):
+        if end >= text_length:
             break
 
-        start = end - overlap
+        next_start = max(start + 1, end - overlap)
+
+        # If the next chunk starts in the middle of a word,
+        # advance to the next whitespace boundary.
+        if next_start > 0 and not text[next_start - 1].isspace():
+            whitespace = text.find(" ", next_start, min(next_start + 100, text_length))
+
+            if whitespace != -1:
+                next_start = whitespace + 1
+
+        start = next_start
 
     return chunks
-
-
 def chunk_document(
     records: list[dict[str, Any]],
     chunk_size: int = 500,
