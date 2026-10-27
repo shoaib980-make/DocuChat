@@ -22,11 +22,13 @@ def search_documents(
     match_count: int = 5,
     match_threshold: float = 0.20,
     backend: str | None = None,
+    document_ids: list[str] | None = None,
+    session_id: str | None = None,
 ) -> list[dict[str, Any]]:
     """
     Search indexed documents for semantic matches to the user question.
-    Supports swapping seamlessly between Supabase pgvector and FAISS
-    via the backend parameter or VECTOR_STORE_BACKEND env var.
+    Supports swapping seamlessly between Supabase pgvector and FAISS,
+    and isolates context strictly to specified document_ids and session_id.
     """
     question = question.strip()
 
@@ -51,4 +53,6 @@ def search_documents(
         query_embedding=query_embedding,
         match_count=match_count,
         match_threshold=match_threshold,
+        document_ids=document_ids,
+        session_id=session_id,
     )

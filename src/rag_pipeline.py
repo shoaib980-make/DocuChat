@@ -278,15 +278,19 @@ class RAGPipeline:
         match_count: int = 3,
         match_threshold: float = 0.20,
         backend: str | None = None,
+        document_ids: list[str] | None = None,
+        session_id: str | None = None,
     ) -> dict[str, Any]:
         chosen_backend = backend or self.vector_backend
 
-        # Step 1: Retrieve context
+        # Step 1: Retrieve context strictly isolated to active document_ids and session_id
         retrieved_chunks = search_documents(
             question=question,
             match_count=match_count,
             match_threshold=match_threshold,
             backend=chosen_backend,
+            document_ids=document_ids,
+            session_id=session_id,
         )
 
         # Step 2: Build isolated grounded prompt
@@ -304,4 +308,5 @@ class RAGPipeline:
             "retrieved_chunks": retrieved_chunks,
             "validation": validation,
             "backend": chosen_backend or os.getenv("VECTOR_STORE_BACKEND", "supabase"),
+            "document_ids": document_ids,
         }

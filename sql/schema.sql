@@ -37,7 +37,8 @@ ON document_chunks (source);
 CREATE OR REPLACE FUNCTION match_document_chunks(
     query_embedding VECTOR(384),
     match_threshold FLOAT DEFAULT 0.20,
-    match_count INT DEFAULT 5
+    match_count INT DEFAULT 5,
+    filter_document_ids TEXT[] DEFAULT NULL
 )
 RETURNS TABLE (
     id BIGINT,
@@ -62,6 +63,7 @@ BEGIN
         1 - (dc.embedding <=> query_embedding) AS similarity
     FROM document_chunks dc
     WHERE 1 - (dc.embedding <=> query_embedding) >= match_threshold
+      AND (filter_document_ids IS NULL OR dc.document_id = ANY(filter_document_ids) OR dc.source = ANY(filter_document_ids))
     ORDER BY dc.embedding <=> query_embedding ASC
     LIMIT match_count;
 END;

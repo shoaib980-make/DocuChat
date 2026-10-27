@@ -45,9 +45,9 @@
 | `EVAL-08` | Answerable | How should production credentials and secr... | 0.601 | YES | VALID | `GROUNDED` |
 | `EVAL-09` | Answerable | Does leave approval require HR signoff or ... | 0.440 | YES | VALID | `GROUNDED` |
 | `EVAL-10` | Answerable | What are the rules regarding employee avai... | 0.639 | YES | VALID | `GROUNDED` |
-| `EVAL-11` | Unanswerable | What is the company 401(k) matching percen... | 0.000 | N/A (Adversarial) | VALID | `REFUSED` |
+| `EVAL-11` | Unanswerable | What is the company 401(k) matching percen... | 0.325 | N/A (Adversarial) | VALID | `REFUSED` |
 | `EVAL-12` | Unanswerable | How much annual gym membership reimburseme... | 0.288 | N/A (Adversarial) | VALID | `REFUSED` |
-| `EVAL-13` | Unanswerable | Who is the Chief Executive Officer (CEO) a... | 0.000 | N/A (Adversarial) | VALID | `REFUSED` |
+| `EVAL-13` | Unanswerable | Who is the Chief Executive Officer (CEO) a... | 0.326 | N/A (Adversarial) | VALID | `REFUSED` |
 | `EVAL-14` | Unanswerable | What is the maximum daily meal allowance d... | 0.324 | N/A (Adversarial) | VALID | `REFUSED` |
 | `EVAL-15` | Unanswerable | What are the operating hours of the Tokyo,... | 0.281 | N/A (Adversarial) | VALID | `REFUSED` |
 

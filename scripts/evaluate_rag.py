@@ -42,11 +42,15 @@ def evaluate_dataset(backend: str = "supabase", match_threshold: float = 0.20) -
         q_type = item["type"]
         expected_refusal = item["expected_refusal"]
 
+        expected_doc = item.get("expected_document")
+        doc_filter = [expected_doc] if expected_doc else None
+
         res = pipeline.answer_question(
             question=question,
             match_count=3,
             match_threshold=match_threshold,
             backend=backend,
+            document_ids=doc_filter,
         )
 
         answer = res["answer"]

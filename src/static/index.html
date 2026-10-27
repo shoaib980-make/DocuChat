@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DocuChat | Enterprise Document RAG with Grounded Citations</title>
-  <meta name="description" content="Production-style RAG application with document upload, Supabase pgvector and FAISS search, grounded answers, and hallucination reduction.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>DocuChat | Enterprise Multi-Document RAG with Grounded Citations</title>
+  <meta name="description" content="Production-style multi-document RAG application with universal upload (PDF, DOCX, PNG, JPG), document isolation, interactive previews, and verifiable citations.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg-base: #0B0F19;
@@ -38,6 +38,7 @@
       box-sizing: border-box;
       margin: 0;
       padding: 0;
+      -webkit-tap-highlight-color: transparent;
     }
 
     body {
@@ -54,22 +55,44 @@
       display: flex;
       width: 100vw;
       height: 100vh;
+      position: relative;
+    }
+
+    /* Mobile Backdrop */
+    .mobile-backdrop {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(4px);
+      z-index: 40;
     }
 
     /* Sidebar */
     .sidebar {
-      width: 360px;
+      width: 380px;
       background: var(--bg-surface);
       border-right: 1px solid var(--border-subtle);
       display: flex;
       flex-direction: column;
       flex-shrink: 0;
-      padding: 24px;
-      gap: 24px;
+      padding: 20px;
+      gap: 20px;
       overflow-y: auto;
+      z-index: 50;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .brand {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand-left {
       display: flex;
       align-items: center;
       gap: 12px;
@@ -91,7 +114,7 @@
 
     .brand-title {
       font-family: var(--font-heading);
-      font-size: 22px;
+      font-size: 20px;
       font-weight: 700;
       letter-spacing: -0.5px;
       background: linear-gradient(135deg, #FFFFFF 0%, #CBD5E1 100%);
@@ -99,33 +122,65 @@
       -webkit-text-fill-color: transparent;
     }
 
-    .section-label {
+    .brand-subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .close-sidebar-btn {
+      display: none;
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 22px;
+      cursor: pointer;
+      padding: 4px;
+    }
+
+    /* Section Cards */
+    .section-card {
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: var(--font-heading);
       font-size: 12px;
       font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.8px;
-      color: var(--text-muted);
-      margin-bottom: 8px;
+      letter-spacing: 0.5px;
+      color: var(--text-secondary);
     }
 
-    /* Backend Selector */
-    .backend-selector {
-      background: var(--bg-surface-elevated);
+    /* Backend Toggle */
+    .toggle-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      background: var(--bg-base);
       padding: 4px;
-      border-radius: var(--radius-md);
-      display: flex;
+      border-radius: var(--radius-sm);
       border: 1px solid var(--border-subtle);
     }
 
-    .backend-btn {
-      flex: 1;
-      padding: 8px 12px;
-      border-radius: var(--radius-sm);
-      border: none;
+    .toggle-btn {
       background: transparent;
+      border: none;
       color: var(--text-secondary);
-      font-size: 13px;
+      padding: 8px 12px;
+      font-size: 12px;
       font-weight: 600;
+      font-family: var(--font-body);
+      border-radius: 6px;
       cursor: pointer;
       transition: all 0.2s ease;
       display: flex;
@@ -134,82 +189,152 @@
       gap: 6px;
     }
 
-    .backend-btn.active {
+    .toggle-btn.active {
       background: var(--primary);
-      color: #fff;
-      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+      color: #FFFFFF;
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
     }
 
-    /* Upload Zone */
-    .upload-zone {
-      border: 2px dashed rgba(99, 102, 241, 0.3);
-      border-radius: var(--radius-lg);
-      padding: 24px 16px;
+    /* Dropzone */
+    .dropzone {
+      border: 2px dashed rgba(99, 102, 241, 0.4);
+      background: rgba(99, 102, 241, 0.04);
+      border-radius: var(--radius-md);
+      padding: 20px 14px;
       text-align: center;
-      background: rgba(99, 102, 241, 0.03);
       cursor: pointer;
       transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
     }
 
-    .upload-zone:hover {
+    .dropzone:hover, .dropzone.dragover {
+      border-color: var(--primary);
+      background: rgba(99, 102, 241, 0.1);
+      transform: translateY(-1px);
+    }
+
+    .dropzone-icon {
+      font-size: 26px;
+    }
+
+    .dropzone-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .dropzone-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* Documents List */
+    .doc-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 240px;
+      overflow-y: auto;
+    }
+
+    .doc-item {
+      background: var(--bg-base);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      transition: all 0.15s ease;
+    }
+
+    .doc-item:hover {
+      border-color: rgba(99, 102, 241, 0.4);
+    }
+
+    .doc-item.selected {
       border-color: var(--primary);
       background: rgba(99, 102, 241, 0.08);
     }
 
-    .upload-zone svg {
-      width: 36px;
-      height: 36px;
-      stroke: var(--primary);
-      margin-bottom: 12px;
-    }
-
-    .upload-text {
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--text-primary);
-      margin-bottom: 4px;
-    }
-
-    .upload-subtext {
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-
-    #fileInput {
-      display: none;
-    }
-
-    .status-card {
-      background: var(--bg-surface-elevated);
-      border-radius: var(--radius-md);
-      padding: 14px;
-      border: 1px solid var(--border-subtle);
-      font-size: 13px;
-    }
-
-    .status-row {
+    .doc-left {
       display: flex;
-      justify-content: space-between;
-      margin-bottom: 6px;
+      align-items: center;
+      gap: 10px;
+      overflow: hidden;
+      flex: 1;
     }
 
-    .status-row:last-child {
-      margin-bottom: 0;
+    .doc-checkbox {
+      accent-color: var(--primary);
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
     }
 
-    .status-val {
+    .doc-icon {
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .doc-info {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    .doc-name {
+      font-size: 12px;
       font-weight: 600;
-      color: var(--emerald);
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .doc-meta {
+      font-size: 10px;
+      color: var(--text-muted);
+      display: flex;
+      gap: 6px;
+    }
+
+    .doc-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .action-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 14px;
+      cursor: pointer;
+      padding: 4px 6px;
+      border-radius: 4px;
+      transition: all 0.15s ease;
+    }
+
+    .action-btn:hover {
+      background: var(--bg-accent);
+      color: #fff;
+    }
+
+    .action-btn.delete-btn:hover {
+      background: rgba(244, 63, 94, 0.2);
+      color: var(--rose);
     }
 
     /* Sliders */
-    .slider-group {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .slider-item {
+    .slider-container {
       display: flex;
       flex-direction: column;
       gap: 6px;
@@ -218,106 +343,143 @@
     .slider-header {
       display: flex;
       justify-content: space-between;
-      font-size: 13px;
+      font-size: 11px;
       color: var(--text-secondary);
     }
 
-    input[type="range"] {
+    .slider-value {
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    input[type=range] {
+      -webkit-appearance: none;
       width: 100%;
-      accent-color: var(--primary);
-      height: 4px;
+      height: 5px;
+      border-radius: 5px;
       background: var(--bg-accent);
-      border-radius: var(--radius-full);
       outline: none;
     }
 
-    /* Main Chat Interface */
-    .main-chat {
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: var(--primary);
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(99, 102, 241, 0.6);
+    }
+
+    /* Main Chat Area */
+    .chat-container {
       flex: 1;
       display: flex;
       flex-direction: column;
       height: 100vh;
-      background: var(--bg-base);
       position: relative;
+      background: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.05) 0%, transparent 60%);
     }
 
+    /* Chat Header */
     .chat-header {
-      padding: 20px 32px;
+      height: 64px;
       border-bottom: 1px solid var(--border-subtle);
+      padding: 0 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       background: rgba(17, 24, 39, 0.7);
-      backdrop-filter: blur(12px);
+      backdrop-filter: blur(10px);
+      flex-shrink: 0;
     }
 
-    .header-info h1 {
-      font-family: var(--font-heading);
-      font-size: 18px;
-      font-weight: 600;
+    .chat-header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .menu-toggle-btn {
+      display: none;
+      background: transparent;
+      border: 1px solid var(--border-subtle);
       color: var(--text-primary);
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-sm);
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    .chat-title-group h2 {
+      font-family: var(--font-heading);
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .chat-title-group p {
+      font-size: 12px;
+      color: var(--text-muted);
     }
 
     .header-badges {
       display: flex;
-      align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
 
-    .badge {
+    .pill-badge {
       font-size: 11px;
-      font-weight: 600;
       padding: 4px 10px;
       border-radius: var(--radius-full);
-      display: inline-flex;
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      display: flex;
       align-items: center;
-      gap: 5px;
-      letter-spacing: 0.3px;
+      gap: 6px;
     }
 
-    .badge-cloud {
-      background: rgba(99, 102, 241, 0.15);
-      color: #A5B4FC;
-      border: 1px solid rgba(99, 102, 241, 0.3);
-    }
-
-    .badge-grounded {
-      background: rgba(16, 185, 129, 0.15);
-      color: #6EE7B7;
-      border: 1px solid rgba(16, 185, 129, 0.3);
-    }
-
-    .badge-refusal {
-      background: rgba(59, 130, 246, 0.15);
-      color: #93C5FD;
-      border: 1px solid rgba(59, 130, 246, 0.3);
+    .pill-badge.active-backend {
+      color: var(--emerald);
+      border-color: rgba(16, 185, 129, 0.3);
+      background: rgba(16, 185, 129, 0.08);
     }
 
     /* Messages Stream */
-    .chat-messages {
+    .messages-container {
       flex: 1;
       overflow-y: auto;
-      padding: 32px;
+      padding: 24px;
       display: flex;
       flex-direction: column;
-      gap: 24px;
+      gap: 20px;
     }
 
     .message {
       display: flex;
-      gap: 16px;
-      max-width: 820px;
+      gap: 12px;
+      max-width: 860px;
+      width: 100%;
+      margin: 0 auto;
+      animation: fadeIn 0.25s ease forwards;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     .message.user {
-      align-self: flex-end;
       flex-direction: row-reverse;
     }
 
     .message-avatar {
       width: 36px;
       height: 36px;
-      border-radius: var(--radius-full);
+      border-radius: var(--radius-md);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -326,90 +488,322 @@
       flex-shrink: 0;
     }
 
-    .user .message-avatar {
+    .message.user .message-avatar {
       background: #3B82F6;
       color: #fff;
     }
 
-    .assistant .message-avatar {
+    .message.assistant .message-avatar {
       background: var(--primary-gradient);
       color: #fff;
+      box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
     }
 
     .message-body {
       display: flex;
       flex-direction: column;
       gap: 8px;
+      max-width: 80%;
+    }
+
+    .message.user .message-body {
+      align-items: flex-end;
     }
 
     .message-bubble {
-      padding: 16px 20px;
+      padding: 14px 18px;
       border-radius: var(--radius-lg);
-      font-size: 15px;
+      font-size: 14px;
       line-height: 1.6;
+      word-break: break-word;
     }
 
-    .user .message-bubble {
-      background: var(--primary);
+    .message.user .message-bubble {
+      background: #2563EB;
       color: #fff;
-      border-bottom-right-radius: 4px;
+      border-top-right-radius: 4px;
     }
 
-    .assistant .message-bubble {
+    .message.assistant .message-bubble {
       background: var(--bg-surface);
       border: 1px solid var(--border-subtle);
       color: var(--text-primary);
-      border-bottom-left-radius: 4px;
+      border-top-left-radius: 4px;
       box-shadow: var(--shadow-soft);
     }
 
-    /* Citations in Answer */
-    .citation-tag {
-      display: inline-block;
-      background: rgba(99, 102, 241, 0.2);
-      color: #C7D2FE;
-      padding: 2px 8px;
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 8px;
       border-radius: 4px;
       font-size: 11px;
-      font-family: monospace;
       font-weight: 600;
+    }
+
+    .badge-grounded {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--emerald);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .badge-refusal {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--amber);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .citation-tag {
+      display: inline-block;
+      background: rgba(99, 102, 241, 0.15);
       border: 1px solid rgba(99, 102, 241, 0.4);
-      margin: 2px 4px;
+      color: #A5B4FC;
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin: 0 2px;
+      font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s ease;
     }
 
-    .citation-tag:hover {
-      background: var(--primary);
-      color: #fff;
-    }
-
-    /* Retrieved Sources Panel below assistant message */
-    .sources-accordion {
-      margin-top: 10px;
-      background: rgba(0, 0, 0, 0.2);
+    /* Scope Bar Above Input */
+    .scope-bar {
+      max-width: 860px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 8px 14px;
+      background: var(--bg-surface-elevated);
       border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-md);
-      overflow: hidden;
-    }
-
-    .sources-toggle {
-      padding: 10px 14px;
+      border-bottom: none;
+      border-radius: var(--radius-md) var(--radius-md) 0 0;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      cursor: pointer;
+      gap: 10px;
       font-size: 12px;
-      color: var(--text-secondary);
-      font-weight: 600;
     }
 
-    .sources-toggle:hover {
+    .scope-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      white-space: nowrap;
+      padding-bottom: 2px;
+    }
+
+    .scope-pill {
+      background: rgba(99, 102, 241, 0.2);
+      border: 1px solid rgba(99, 102, 241, 0.4);
+      color: #C7D2FE;
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .scope-pill-remove {
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .scope-right button {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 11px;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    /* Input Box */
+    .input-section {
+      padding: 0 24px 20px 24px;
+      background: transparent;
+      flex-shrink: 0;
+    }
+
+    .input-container {
+      max-width: 860px;
+      margin: 0 auto;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+      padding: 10px 14px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      box-shadow: var(--shadow-soft);
+      transition: border-color 0.2s ease;
+    }
+
+    .input-container.no-scope {
+      border-radius: var(--radius-lg);
+    }
+
+    .input-container:focus-within {
+      border-color: var(--border-focus);
+    }
+
+    .attach-btn {
+      background: var(--bg-accent);
+      border: none;
+      color: var(--text-primary);
+      width: 38px;
+      height: 38px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .attach-btn:hover {
+      background: var(--primary);
+    }
+
+    .chat-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      font-size: 14px;
+      outline: none;
+      min-height: 24px;
+    }
+
+    .send-btn {
+      background: var(--primary-gradient);
+      border: none;
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: var(--radius-md);
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .send-btn:hover {
+      opacity: 0.9;
+    }
+
+    /* Modal for Preview */
+    .preview-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .preview-content {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 900px;
+      height: 85vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    }
+
+    .preview-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .preview-title {
+      font-family: var(--font-heading);
+      font-size: 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .preview-close {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 20px;
+      cursor: pointer;
+      padding: 4px;
+    }
+
+    .preview-body {
+      flex: 1;
+      overflow: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #000;
+      padding: 10px;
+    }
+
+    .preview-body iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      border-radius: var(--radius-sm);
+      background: #fff;
+    }
+
+    .preview-body img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      border-radius: var(--radius-sm);
+    }
+
+    /* Accordion for sources */
+    .sources-accordion {
+      margin-top: 10px;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      background: var(--bg-base);
+    }
+
+    .sources-toggle {
+      padding: 8px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      user-select: none;
       background: rgba(255, 255, 255, 0.02);
     }
 
     .sources-list {
-      padding: 12px 14px;
+      padding: 10px;
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -417,304 +811,447 @@
     }
 
     .source-item {
-      padding: 10px 12px;
-      border-radius: var(--radius-sm);
+      font-size: 11px;
       background: var(--bg-surface-elevated);
-      font-size: 12px;
+      border-radius: 4px;
+      padding: 8px;
       border-left: 3px solid var(--primary);
     }
 
     .source-meta {
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: #C7D2FE;
       display: flex;
       justify-content: space-between;
-      color: var(--text-muted);
-      margin-bottom: 4px;
-      font-weight: 600;
     }
 
     .source-text {
-      color: var(--text-secondary);
-      line-height: 1.4;
+      color: var(--text-muted);
+      white-space: pre-wrap;
     }
 
-    /* Quick Chips */
-    .quick-chips {
-      padding: 0 32px 12px 32px;
-      display: flex;
-      gap: 8px;
-      overflow-x: auto;
-    }
-
-    .chip {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-subtle);
-      padding: 6px 14px;
-      border-radius: var(--radius-full);
-      font-size: 12px;
-      color: var(--text-secondary);
-      cursor: pointer;
-      white-space: nowrap;
-      transition: all 0.2s ease;
-    }
-
-    .chip:hover {
-      border-color: var(--primary);
-      color: var(--text-primary);
-      background: rgba(99, 102, 241, 0.1);
-    }
-
-    .chip.adv {
-      border-color: rgba(244, 63, 94, 0.3);
-      color: #FDA4AF;
-    }
-
-    .chip.adv:hover {
-      border-color: var(--rose);
-      background: rgba(244, 63, 94, 0.1);
-    }
-
-    /* Input Box */
-    .chat-input-area {
-      padding: 16px 32px 28px 32px;
-      border-top: 1px solid var(--border-subtle);
-      background: var(--bg-surface);
-    }
-
-    .input-form {
-      display: flex;
-      gap: 12px;
-      position: relative;
-    }
-
-    .input-form input {
-      flex: 1;
-      background: var(--bg-surface-elevated);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-lg);
-      padding: 16px 20px;
-      color: var(--text-primary);
-      font-family: var(--font-body);
-      font-size: 15px;
-      outline: none;
-      transition: border-color 0.2s ease;
-    }
-
-    .input-form input:focus {
-      border-color: var(--border-focus);
-    }
-
-    .send-btn {
-      background: var(--primary-gradient);
-      border: none;
-      border-radius: var(--radius-lg);
-      padding: 0 24px;
-      color: #fff;
-      font-weight: 600;
-      font-size: 15px;
-      cursor: pointer;
-      transition: opacity 0.2s ease, transform 0.1s ease;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .send-btn:hover {
-      opacity: 0.95;
-    }
-
-    .send-btn:active {
-      transform: scale(0.98);
-    }
-
-    /* Loader */
+    /* Typing Dots */
     .typing-dot {
       display: inline-block;
       width: 6px;
       height: 6px;
-      margin-right: 3px;
-      background: var(--primary);
       border-radius: 50%;
-      animation: pulse 1s infinite alternate;
+      background: var(--text-muted);
+      margin: 0 2px;
+      animation: bounce 1.4s infinite ease-in-out both;
     }
-    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
-    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+    .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1.0); }
+    }
 
-    @keyframes pulse {
-      0% { opacity: 0.3; transform: scale(0.8); }
-      100% { opacity: 1; transform: scale(1.2); }
+    /* Responsive Styles */
+    @media (max-width: 900px) {
+      .sidebar {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        transform: translateX(-100%);
+        box-shadow: 10px 0 30px rgba(0, 0, 0, 0.8);
+      }
+      .sidebar.open {
+        transform: translateX(0);
+      }
+      .mobile-backdrop.open {
+        display: block;
+      }
+      .menu-toggle-btn {
+        display: flex;
+      }
+      .close-sidebar-btn {
+        display: block;
+      }
+      .message-body {
+        max-width: 90%;
+      }
     }
   </style>
 </head>
 <body>
 
 <div class="app-container">
+  <!-- Mobile Backdrop -->
+  <div class="mobile-backdrop" id="mobileBackdrop" onclick="closeSidebar()"></div>
+
   <!-- Sidebar -->
-  <aside class="sidebar">
+  <aside class="sidebar" id="sidebar">
     <div class="brand">
-      <div class="brand-icon">D</div>
-      <div>
-        <div class="brand-title">DocuChat</div>
-        <div style="font-size: 11px; color: var(--text-muted);">Enterprise Document RAG</div>
+      <div class="brand-left">
+        <div class="brand-icon">D</div>
+        <div>
+          <div class="brand-title">DocuChat</div>
+          <div class="brand-subtitle">Multi-Doc Enterprise RAG</div>
+        </div>
       </div>
+      <button class="close-sidebar-btn" onclick="closeSidebar()" aria-label="Close sidebar">✕</button>
     </div>
 
     <!-- Backend Switcher -->
-    <div>
-      <div class="section-label">Vector Store Backend</div>
-      <div class="backend-selector">
-        <button id="btnSupabase" class="backend-btn active" onclick="setBackend('supabase')">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm4.24 10.74l-5.66 5.66a.71.71 0 01-1.01 0l-2.83-2.83a.71.71 0 010-1.01l5.66-5.66a.71.71 0 011.01 0l2.83 2.83c.28.28.28.73 0 1.01z"/></svg>
-          Supabase (Cloud)
+    <div class="section-card">
+      <div class="section-header">
+        <span>Vector Database</span>
+        <span id="backendBadge" style="color: var(--emerald); font-size: 10px;">SUPABASE ACTIVE</span>
+      </div>
+      <div class="toggle-group">
+        <button class="toggle-btn active" id="btnSupabase" onclick="setBackend('supabase')">
+          <span>☁️</span> Supabase
         </button>
-        <button id="btnFaiss" class="backend-btn" onclick="setBackend('faiss')">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z"/></svg>
-          FAISS (Local)
+        <button class="toggle-btn" id="btnFaiss" onclick="setBackend('faiss')">
+          <span>⚡</span> FAISS (Local)
         </button>
       </div>
     </div>
 
-    <!-- Upload Zone -->
-    <div>
-      <div class="section-label">Document Ingestion</div>
-      <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-          <polyline points="17 8 12 3 7 8"></polyline>
-          <line x1="12" y1="3" x2="12" y2="15"></line>
-        </svg>
-        <div class="upload-text" id="uploadStatusText">Upload PDF or DOCX</div>
-        <div class="upload-subtext">Automatic parse, chunk (200/40), and embed</div>
-        <input type="file" id="fileInput" accept=".pdf,.docx" onchange="handleFileUpload(event)">
+    <!-- Universal Document Upload Dropzone -->
+    <div class="section-card">
+      <div class="section-header">
+        <span>Universal Ingestion</span>
+        <span id="uploadStatusText" style="color: var(--primary); font-size: 11px;">PDF, DOCX, PNG, JPG</span>
+      </div>
+      <input type="file" id="fileInput" multiple accept=".pdf,.docx,.png,.jpg,.jpeg,image/*,application/pdf" style="display:none;" onchange="handleFileUpload(event)">
+      <div class="dropzone" id="dropzone" onclick="document.getElementById('fileInput').click()">
+        <div class="dropzone-icon">📁</div>
+        <div class="dropzone-title">Upload Documents or Images</div>
+        <div class="dropzone-desc">Drag & drop or tap to select multi-files<br>(Desktop, Phone, Tablet supported)</div>
       </div>
     </div>
 
-    <!-- System Status -->
-    <div>
-      <div class="section-label">Knowledge Base Status</div>
-      <div class="status-card">
-        <div class="status-row">
-          <span>Active Corpus</span>
-          <span class="status-val">sample_company_policy.pdf</span>
+    <!-- Attached Documents Manager -->
+    <div class="section-card" style="flex: 1; min-height: 200px;">
+      <div class="section-header">
+        <span>Attached Documents</span>
+        <span id="docCountBadge" style="color: var(--emerald); font-size: 11px;">0 active</span>
+      </div>
+      
+      <div style="display: flex; justify-content: space-between; font-size: 11px; padding: 0 4px;">
+        <span style="color: var(--text-muted);">Check to include in query</span>
+        <div>
+          <button style="background:none; border:none; color:var(--primary); cursor:pointer; font-size:11px;" onclick="selectAllDocs(true)">All</button>
+          <span style="color:var(--text-muted);">|</span>
+          <button style="background:none; border:none; color:var(--text-secondary); cursor:pointer; font-size:11px;" onclick="selectAllDocs(false)">None</button>
         </div>
-        <div class="status-row">
-          <span>Embeddings</span>
-          <span>MiniLM-L6-v2 (384d)</span>
-        </div>
-        <div class="status-row">
-          <span>Grounding Mode</span>
-          <span class="status-val">Strict + Citations</span>
-        </div>
-        <div class="status-row">
-          <span>No-Answer Behavior</span>
-          <span style="color: #60A5FA;">Explicit Refusal</span>
+      </div>
+
+      <div class="doc-list" id="docList">
+        <div style="text-align: center; color: var(--text-muted); font-size: 12px; padding: 20px;">
+          No documents uploaded yet.<br>Upload PDF, DOCX, or images to begin.
         </div>
       </div>
     </div>
 
-    <!-- Retrieval Sliders -->
-    <div class="slider-group">
-      <div class="section-label">RAG Hyperparameters</div>
-      <div class="slider-item">
+    <!-- RAG Hyperparameters -->
+    <div class="section-card">
+      <div class="section-header">
+        <span>RAG Hyperparameters</span>
+      </div>
+      <div class="slider-container">
         <div class="slider-header">
           <span>Similarity Threshold</span>
-          <span id="threshVal">0.20</span>
+          <span class="slider-value" id="threshVal">0.20</span>
         </div>
-        <input type="range" id="threshSlider" min="0.05" max="0.80" step="0.05" value="0.20" oninput="document.getElementById('threshVal').innerText = this.value">
+        <input type="range" id="threshSlider" min="0.0" max="0.8" step="0.05" value="0.20" oninput="document.getElementById('threshVal').innerText = parseFloat(this.value).toFixed(2)">
       </div>
-      <div class="slider-item">
+      <div class="slider-container">
         <div class="slider-header">
           <span>Top Chunks (k)</span>
-          <span id="kVal">3</span>
+          <span class="slider-value" id="kVal">5</span>
         </div>
-        <input type="range" id="kSlider" min="1" max="5" step="1" value="3" oninput="document.getElementById('kVal').innerText = this.value">
+        <input type="range" id="kSlider" min="1" max="10" step="1" value="5" oninput="document.getElementById('kVal').innerText = this.value">
       </div>
     </div>
   </aside>
 
-  <!-- Main Chat Section -->
-  <main class="main-chat">
+  <!-- Main Chat Area -->
+  <main class="chat-container">
+    <!-- Header -->
     <header class="chat-header">
-      <div class="header-info">
-        <h1>Document Assistant</h1>
-        <div style="font-size: 12px; color: var(--text-muted);">Grounded answers strictly cited from verified company policy</div>
+      <div class="chat-header-left">
+        <button class="menu-toggle-btn" onclick="openSidebar()" aria-label="Open menu">☰</button>
+        <div class="chat-title-group">
+          <h2>Document Assistant</h2>
+          <p id="chatSubtext">Grounded multi-document answers with verifiable citations</p>
+        </div>
       </div>
       <div class="header-badges">
-        <div class="badge badge-cloud" id="activeBackendBadge">Supabase pgvector</div>
-        <div class="badge badge-grounded">Strictly Grounded (temp=0.0)</div>
+        <div class="pill-badge active-backend" id="statusPill">● Supabase Active</div>
+        <div class="pill-badge" id="tempPill">Strict Grounded (temp=0.0)</div>
       </div>
     </header>
 
-    <!-- Messages -->
-    <div class="chat-messages" id="messagesContainer">
+    <!-- Messages Container -->
+    <div class="messages-container" id="messagesContainer">
       <div class="message assistant">
         <div class="message-avatar">AI</div>
         <div class="message-body">
           <div class="message-bubble">
-            Hello! I am DocuChat. Ask me any question about the company policies, leave entitlements, remote work rules, or credential security. Every answer will be strictly grounded in the document text with verifiable inline citations.
+            Hello! I am DocuChat. Upload PDFs, Word documents, or images (transcripts, policies, receipts) from any device. Select which documents you'd like to ask about, and every answer will be strictly grounded with zero context contamination.
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Quick Question Chips -->
-    <div class="quick-chips">
-      <div class="chip" onclick="askQuickQuestion('How many vacation days do employees receive annually?')">Vacation Days</div>
-      <div class="chip" onclick="askQuickQuestion('What are the rules for working remotely?')">Remote Work Rules</div>
-      <div class="chip" onclick="askQuickQuestion('How should production credentials be protected?')">Security & Credentials</div>
-      <div class="chip adv" onclick="askQuickQuestion('What is the company 401(k) matching percentage?')">Adversarial: 401(k) Match (Refusal Test)</div>
-      <div class="chip adv" onclick="askQuickQuestion('Where is the Tokyo satellite office located?')">Adversarial: Tokyo Office (Refusal Test)</div>
+    <!-- Active Document Scope Bar -->
+    <div class="scope-bar" id="scopeBar">
+      <div class="scope-left" id="scopePills">
+        <span style="color: var(--text-muted); font-size: 11px;">Active Context:</span>
+        <span class="scope-pill" id="allDocsPill">All Uploaded Documents</span>
+      </div>
+      <div class="scope-right">
+        <button onclick="document.getElementById('fileInput').click()">+ Add Document</button>
+      </div>
     </div>
 
     <!-- Input Bar -->
-    <div class="chat-input-area">
-      <form class="input-form" onsubmit="handleSendMessage(event)">
-        <input type="text" id="userInput" placeholder="Ask a question about the uploaded company documents..." autocomplete="off">
+    <div class="input-section">
+      <form class="input-container" id="chatForm" onsubmit="handleSendMessage(event)">
+        <button type="button" class="attach-btn" onclick="document.getElementById('fileInput').click()" title="Attach Document or Image">📎</button>
+        <input type="text" class="chat-input" id="userInput" placeholder="Ask a question about the selected document(s)..." autocomplete="off">
         <button type="submit" class="send-btn" id="sendBtn">
-          Ask
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+          <span>Ask</span>
+          <span>➤</span>
         </button>
       </form>
     </div>
   </main>
 </div>
 
+<!-- Preview Modal -->
+<div class="preview-modal" id="previewModal" onclick="if(event.target === this) closePreview()">
+  <div class="preview-content">
+    <div class="preview-header">
+      <div class="preview-title" id="previewTitle">📄 Document Preview</div>
+      <button class="preview-close" onclick="closePreview()">✕</button>
+    </div>
+    <div class="preview-body" id="previewBody">
+      <!-- Injected iframe or image -->
+    </div>
+  </div>
+</div>
+
 <script>
   let activeBackend = 'supabase';
+  let availableDocs = [];
+  let selectedDocIds = new Set();
+  const sessionId = 'session_' + Math.random().toString(36).substring(2, 9);
 
-  function setBackend(backend) {
+  // Initialize
+  window.addEventListener('DOMContentLoaded', () => {
+    fetchStatus();
+    loadDocuments();
+    setupDropzone();
+  });
+
+  function openSidebar() {
+    document.getElementById('sidebar').classList.add('open');
+    document.getElementById('mobileBackdrop').classList.add('open');
+  }
+
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('mobileBackdrop').classList.remove('open');
+  }
+
+  async function fetchStatus() {
+    try {
+      const res = await fetch('/api/status');
+      const data = await res.json();
+      if (data.default_backend) {
+        setBackend(data.default_backend, false);
+      }
+    } catch (e) {
+      console.warn('Status check warning:', e);
+    }
+  }
+
+  function setBackend(backend, reloadDocs = true) {
     activeBackend = backend;
     document.getElementById('btnSupabase').classList.toggle('active', backend === 'supabase');
     document.getElementById('btnFaiss').classList.toggle('active', backend === 'faiss');
-    document.getElementById('activeBackendBadge').innerText = backend === 'supabase' ? 'Supabase pgvector' : 'FAISS Local Index';
+    document.getElementById('backendBadge').innerText = backend.toUpperCase() + ' ACTIVE';
+    document.getElementById('statusPill').innerText = '● ' + backend.toUpperCase() + ' Active';
+    if (reloadDocs) {
+      loadDocuments();
+    }
   }
 
-  function formatCitationsInText(text) {
-    // Replace [Doc: ..., Page: ..., Chunk: ...] with formatted clickable badges
-    return text.replace(/\[Doc:\s*([^,]+),\s*Page:\s*([^,]+),\s*Chunk:\s*([^\]]+)\]/g, (match, doc, page, chunk) => {
-      return `<span class="citation-tag" title="Document: ${doc} | Page: ${page}">[${doc} p.${page} #c${chunk}]</span>`;
+  async function loadDocuments() {
+    try {
+      const res = await fetch(`/api/documents?backend=${activeBackend}&session_id=${sessionId}`);
+      const data = await res.json();
+      availableDocs = data.documents || [];
+      
+      // Auto-select all documents by default if not previously set
+      if (selectedDocIds.size === 0) {
+        availableDocs.forEach(d => selectedDocIds.add(d.document_id));
+      } else {
+        // Keep only existing docs
+        const validIds = new Set(availableDocs.map(d => d.document_id));
+        selectedDocIds = new Set([...selectedDocIds].filter(id => validIds.has(id)));
+      }
+      
+      renderDocumentList();
+      renderScopeBar();
+    } catch (e) {
+      console.error('Failed to load documents:', e);
+    }
+  }
+
+  function renderDocumentList() {
+    const container = document.getElementById('docList');
+    const badge = document.getElementById('docCountBadge');
+    
+    badge.innerText = `${selectedDocIds.size} of ${availableDocs.length} selected`;
+
+    if (availableDocs.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; color: var(--text-muted); font-size: 12px; padding: 20px;">
+          No documents uploaded yet.<br>Upload PDF, DOCX, or images to begin.
+        </div>`;
+      return;
+    }
+
+    container.innerHTML = availableDocs.map(doc => {
+      const isChecked = selectedDocIds.has(doc.document_id);
+      const ext = (doc.file_type || '').toLowerCase();
+      let icon = '📄';
+      if (['.png', '.jpg', '.jpeg'].includes(ext)) icon = '🖼️';
+      else if (['.docx', '.doc'].includes(ext)) icon = '📝';
+
+      const sizeStr = doc.file_size ? formatBytes(doc.file_size) : '';
+
+      return `
+        <div class="doc-item ${isChecked ? 'selected' : ''}">
+          <div class="doc-left">
+            <input type="checkbox" class="doc-checkbox" ${isChecked ? 'checked' : ''} onchange="toggleDocSelection('${escapeHtml(doc.document_id)}', this.checked)">
+            <span class="doc-icon">${icon}</span>
+            <div class="doc-info">
+              <span class="doc-name" title="${escapeHtml(doc.filename)}">${escapeHtml(doc.filename)}</span>
+              <span class="doc-meta">
+                <span>${doc.chunk_count} chunks</span>
+                ${sizeStr ? `<span>• ${sizeStr}</span>` : ''}
+              </span>
+            </div>
+          </div>
+          <div class="doc-actions">
+            <button class="action-btn" onclick="previewDoc('${escapeHtml(doc.document_id)}', '${escapeHtml(doc.filename)}')" title="Preview Document">👁️</button>
+            <button class="action-btn delete-btn" onclick="deleteDoc('${escapeHtml(doc.document_id)}')" title="Delete Document">🗑️</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function toggleDocSelection(docId, isSelected) {
+    if (isSelected) {
+      selectedDocIds.add(docId);
+    } else {
+      selectedDocIds.delete(docId);
+    }
+    renderDocumentList();
+    renderScopeBar();
+  }
+
+  function selectAllDocs(select) {
+    if (select) {
+      availableDocs.forEach(d => selectedDocIds.add(d.document_id));
+    } else {
+      selectedDocIds.clear();
+    }
+    renderDocumentList();
+    renderScopeBar();
+  }
+
+  function renderScopeBar() {
+    const pills = document.getElementById('scopePills');
+    if (selectedDocIds.size === 0) {
+      pills.innerHTML = `<span style="color: var(--amber); font-size: 11px;">⚠️ No document selected (Context isolated: queries will refuse to prevent mixing)</span>`;
+      return;
+    }
+
+    if (selectedDocIds.size === availableDocs.length && availableDocs.length > 0) {
+      pills.innerHTML = `
+        <span style="color: var(--text-muted); font-size: 11px;">Active Context:</span>
+        <span class="scope-pill">All (${availableDocs.length}) Documents</span>
+      `;
+      return;
+    }
+
+    const pillsHtml = Array.from(selectedDocIds).map(id => {
+      const doc = availableDocs.find(d => d.document_id === id);
+      const name = doc ? doc.filename : id;
+      return `
+        <span class="scope-pill">
+          ${escapeHtml(name)}
+          <span class="scope-pill-remove" onclick="toggleDocSelection('${escapeHtml(id)}', false)">✕</span>
+        </span>
+      `;
+    }).join('');
+
+    pills.innerHTML = `<span style="color: var(--text-muted); font-size: 11px;">Active Scope:</span>` + pillsHtml;
+  }
+
+  function setupDropzone() {
+    const dz = document.getElementById('dropzone');
+    ['dragenter', 'dragover'].forEach(name => {
+      dz.addEventListener(name, (e) => {
+        e.preventDefault();
+        dz.classList.add('dragover');
+      });
+    });
+    ['dragleave', 'drop'].forEach(name => {
+      dz.addEventListener(name, (e) => {
+        e.preventDefault();
+        dz.classList.remove('dragover');
+      });
+    });
+    dz.addEventListener('drop', (e) => {
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        uploadFiles(files);
+      }
     });
   }
 
-  async function handleFileUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
+  function handleFileUpload(event) {
+    const files = event.target.files;
+    if (files.length > 0) {
+      uploadFiles(files);
+    }
+  }
 
+  async function uploadFiles(fileList) {
     const statusEl = document.getElementById('uploadStatusText');
-    statusEl.innerText = `Ingesting ${file.name}...`;
+    statusEl.innerText = `Ingesting ${fileList.length} file(s)...`;
 
     const formData = new FormData();
-    formData.append('file', file);
+    for (let i = 0; i < fileList.length; i++) {
+      formData.append('files', fileList[i]);
+    }
 
     try {
-      const response = await fetch(`/api/upload?backend=${activeBackend}`, {
+      const res = await fetch(`/api/upload?backend=${activeBackend}&session_id=${sessionId}`, {
         method: 'POST',
         body: formData,
       });
 
-      const data = await response.json();
-      if (response.ok) {
+      const data = await res.json();
+      if (res.ok) {
         statusEl.innerText = `Indexed ${data.chunks_stored} chunks!`;
-        appendSystemNotification(`Successfully indexed <strong>${file.name}</strong> (${data.chunks_stored} chunks stored into ${activeBackend.toUpperCase()}).`);
+        appendSystemNotification(`✅ Successfully indexed <strong>${escapeHtml(data.filename)}</strong> (${data.chunks_stored} chunks stored into ${activeBackend.toUpperCase()}).`);
+        // Refresh document list and select the newly uploaded files
+        if (data.results) {
+          data.results.forEach(r => selectedDocIds.add(r.filename));
+        }
+        await loadDocuments();
       } else {
         statusEl.innerText = 'Upload failed';
         alert('Upload Error: ' + (data.detail || 'Unknown error'));
@@ -722,24 +1259,52 @@
     } catch (err) {
       statusEl.innerText = 'Upload failed';
       alert('Upload failed: ' + err.message);
+    } finally {
+      document.getElementById('fileInput').value = '';
     }
   }
 
-  function appendSystemNotification(htmlContent) {
-    const container = document.getElementById('messagesContainer');
-    const note = document.createElement('div');
-    note.style.textAlign = 'center';
-    note.style.fontSize = '12px';
-    note.style.color = '#10B981';
-    note.style.padding = '8px';
-    note.innerHTML = htmlContent;
-    container.appendChild(note);
-    container.scrollTop = container.scrollHeight;
+  async function deleteDoc(docId) {
+    if (!confirm(`Are you sure you want to remove '${docId}' and erase all its vectors?`)) return;
+
+    try {
+      const res = await fetch(`/api/documents/${encodeURIComponent(docId)}?backend=${activeBackend}&session_id=${sessionId}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (res.ok) {
+        selectedDocIds.delete(docId);
+        appendSystemNotification(`🗑️ Removed <strong>${escapeHtml(docId)}</strong> and cleared its index.`);
+        await loadDocuments();
+      } else {
+        alert('Delete failed: ' + (data.detail || 'Could not delete document.'));
+      }
+    } catch (err) {
+      alert('Network error while deleting: ' + err.message);
+    }
   }
 
-  function askQuickQuestion(text) {
-    document.getElementById('userInput').value = text;
-    handleSendMessage(new Event('submit'));
+  function previewDoc(docId, title) {
+    const modal = document.getElementById('previewModal');
+    const body = document.getElementById('previewBody');
+    const titleEl = document.getElementById('previewTitle');
+
+    titleEl.innerText = `📄 ${title || docId}`;
+    const previewUrl = `/api/documents/${encodeURIComponent(docId)}/preview`;
+    const ext = (docId.split('.').pop() || '').toLowerCase();
+
+    if (['png', 'jpg', 'jpeg'].includes(ext)) {
+      body.innerHTML = `<img src="${previewUrl}" alt="Preview" onerror="this.outerHTML='<p style=\\'color:#fff;\\'>Preview not available for this file.</p>'">`;
+    } else {
+      body.innerHTML = `<iframe src="${previewUrl}"></iframe>`;
+    }
+
+    modal.style.display = 'flex';
+  }
+
+  function closePreview() {
+    document.getElementById('previewModal').style.display = 'none';
+    document.getElementById('previewBody').innerHTML = '';
   }
 
   async function handleSendMessage(event) {
@@ -751,13 +1316,22 @@
     input.value = '';
     const container = document.getElementById('messagesContainer');
 
+    // Display active doc badge on user message
+    const activeDocNames = Array.from(selectedDocIds);
+    let scopeNotice = '';
+    if (activeDocNames.length > 0 && activeDocNames.length < availableDocs.length) {
+      scopeNotice = `<div style="font-size:10px; opacity:0.8; margin-bottom:4px;">Targeting: ${escapeHtml(activeDocNames.join(', '))}</div>`;
+    } else if (activeDocNames.length === 0) {
+      scopeNotice = `<div style="font-size:10px; color:#F59E0B; margin-bottom:4px;">⚠️ No document selected</div>`;
+    }
+
     // 1. Append User Message
     const userMsg = document.createElement('div');
     userMsg.className = 'message user';
     userMsg.innerHTML = `
       <div class="message-avatar">U</div>
       <div class="message-body">
-        <div class="message-bubble">${escapeHtml(question)}</div>
+        <div class="message-bubble">${scopeNotice}${escapeHtml(question)}</div>
       </div>
     `;
     container.appendChild(userMsg);
@@ -768,7 +1342,7 @@
     aiMsg.innerHTML = `
       <div class="message-avatar">AI</div>
       <div class="message-body">
-        <div class="message-bubble" id="loadingBubble">
+        <div class="message-bubble">
           <span class="typing-dot"></span>
           <span class="typing-dot"></span>
           <span class="typing-dot"></span>
@@ -790,6 +1364,8 @@
           backend: activeBackend,
           match_threshold: threshold,
           match_count: count,
+          document_ids: Array.from(selectedDocIds),
+          session_id: sessionId,
         })
       });
 
@@ -807,7 +1383,7 @@
 
       let badgeHtml = '';
       if (isRefusal) {
-        badgeHtml = `<div class="badge badge-refusal" style="margin-bottom: 8px;">Safe Refusal (Zero Hallucination)</div>`;
+        badgeHtml = `<div class="badge badge-refusal" style="margin-bottom: 8px;">Safe Refusal (Zero Hallucination / Isolated Scope)</div>`;
       } else {
         const score = Math.round(data.validation.groundedness_score * 100);
         badgeHtml = `<div class="badge badge-grounded" style="margin-bottom: 8px;">Grounded ${score}% | ${data.validation.found_citations.length} Verified Citations</div>`;
@@ -815,17 +1391,17 @@
 
       bubble.innerHTML = `${badgeHtml}<div>${formattedAnswer}</div>`;
 
-      // 3. Render Retrieved Sources Accordion
+      // Render Retrieved Sources Accordion
       if (data.retrieved_chunks && data.retrieved_chunks.length > 0) {
         const sourcesAccordion = document.createElement('div');
         sourcesAccordion.className = 'sources-accordion';
-        
+
         let sourcesHtml = '';
         data.retrieved_chunks.forEach((chunk, i) => {
           sourcesHtml += `
             <div class="source-item">
               <div class="source-meta">
-                <span>[${i + 1}] ${escapeHtml(chunk.source || 'Document')} (p. ${chunk.page || 1}, chunk #${chunk.chunk_index})</span>
+                <span>[${i + 1}] ${escapeHtml(chunk.source || chunk.document_id || 'Document')} (p. ${chunk.page || 1}, chunk #${chunk.chunk_index})</span>
                 <span style="color: #10B981;">Sim: ${(chunk.similarity).toFixed(3)}</span>
               </div>
               <div class="source-text">${escapeHtml(chunk.content)}</div>
@@ -861,10 +1437,38 @@
     el.querySelector('span:last-child').innerText = isHidden ? '▲' : '▼';
   }
 
+  function appendSystemNotification(htmlContent) {
+    const container = document.getElementById('messagesContainer');
+    const note = document.createElement('div');
+    note.style.textAlign = 'center';
+    note.style.fontSize = '12px';
+    note.style.color = '#10B981';
+    note.style.padding = '8px';
+    note.innerHTML = htmlContent;
+    container.appendChild(note);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function formatCitationsInText(text) {
+    const pattern = /\[Doc:\s*([^,]+),\s*Page:\s*([^,]+),\s*Chunk:\s*([^\]]+)\]/g;
+    return text.replace(pattern, (match, doc, page, chunk) => {
+      return `<span class="citation-tag" onclick="previewDoc('${doc.trim()}', '${doc.trim()}')" title="Click to preview source">[${doc.trim()} p.${page.trim()} #c${chunk.trim()}]</span>`;
+    });
+  }
+
   function escapeHtml(text) {
+    if (!text) return '';
     const div = document.createElement('div');
-    div.innerText = text;
+    div.innerText = String(text);
     return div.innerHTML;
+  }
+
+  function formatBytes(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   }
 </script>
 </body>
