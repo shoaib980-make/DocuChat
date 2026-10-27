@@ -19,10 +19,16 @@ logger = logging.getLogger("docuchat_api")
 logging.basicConfig(level=logging.INFO)
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-UPLOAD_DIR = PROJECT_ROOT / "data" / "uploads"
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 STATIC_DIR = PROJECT_ROOT / "src" / "static"
 STATIC_DIR.mkdir(parents=True, exist_ok=True)
+
+try:
+    UPLOAD_DIR = PROJECT_ROOT / "data" / "uploads"
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+except (OSError, PermissionError):
+    import tempfile
+    UPLOAD_DIR = Path(tempfile.gettempdir()) / "docuchat_uploads"
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 app = FastAPI(
     title="DocuChat API",
@@ -120,6 +126,12 @@ async def upload_document(
     except Exception as e:
         logger.error("Upload error: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        try:
+            if temp_path.exists():
+                temp_path.unlink()
+        except OSError:
+            pass
 
 
 @app.post("/api/chat", response_model=ChatResponse)

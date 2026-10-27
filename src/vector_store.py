@@ -176,10 +176,13 @@ class FaissVectorStore(BaseVectorStore):
 
     def _save_to_disk(self) -> None:
         if self.index_file and self.metadata_file:
-            self.index_file.parent.mkdir(parents=True, exist_ok=True)
-            faiss.write_index(self.index, str(self.index_file))
-            with open(self.metadata_file, "w", encoding="utf-8") as f:
-                json.dump(self.metadata, f, indent=2)
+            try:
+                self.index_file.parent.mkdir(parents=True, exist_ok=True)
+                faiss.write_index(self.index, str(self.index_file))
+                with open(self.metadata_file, "w", encoding="utf-8") as f:
+                    json.dump(self.metadata, f, indent=2)
+            except (OSError, PermissionError) as e:
+                logger.warning("Could not persist FAISS index to disk (%s). Keeping in memory.", e)
 
     def store(
         self,

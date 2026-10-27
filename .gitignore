@@ -1,7 +1,22 @@
+# Virtual Environment
 .venv/
+venv/
+ENV/
+
+# Python Cache & Bytecode
 __pycache__/
-.pytest_cache/
-.env
-.env.*
-!.env.example
 *.py[cod]
+*$py.class
+.pytest_cache/
+
+# Environment Variables & Secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Vercel Cache & Build Artifacts
+.vercel/
+
+# User-uploaded documents (keep out of Git deployments)
+data/uploads/
