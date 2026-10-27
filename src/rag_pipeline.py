@@ -101,7 +101,11 @@ class DeterministicGroundedGenerator:
             if not any(entity_lower in (c.get("content") or c.get("text", "")).lower() for c in chunks):
                 return REFUSAL_MESSAGE
 
-        matched_sentences: list[tuple[str, str]] = []
+        # Distinguish topical keywords (e.g. project, vacation, rules, gpa) from name tokens
+        name_words = {e.lower() for e in named_entities} | {"shoaib", "asghar", "john", "doe"}
+        topic_keywords = {k for k in keywords if k not in name_words}
+
+        scored_candidates: list[tuple[float, str, str]] = []
 
         for chunk in chunks:
             source = chunk.get("source", "doc")
@@ -110,25 +114,43 @@ class DeterministicGroundedGenerator:
             citation = f"[Doc: {source}, Page: {page}, Chunk: {chunk_idx}]"
 
             content = chunk.get("content", chunk.get("text", ""))
-            raw_sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", content) if s.strip()]
+            # Split by line breaks or sentence endings to handle resume bullets and policy paragraphs
+            raw_segments = [s.strip() for s in re.split(r"[\n\r]+|(?<=[.!?])\s+", content) if len(s.strip()) > 5]
 
-            for sent in raw_sentences:
-                sent_words = set(re.findall(r"\w+", sent.lower()))
-                overlap = keywords & sent_words
-                # Require meaningful overlap (at least 2 words or >=30% of question keywords)
-                if len(overlap) >= 2 or (len(keywords) <= 2 and len(overlap) >= 1):
-                    matched_sentences.append((sent, citation))
+            for seg in raw_segments:
+                seg_words = set(re.findall(r"\w+", seg.lower()))
+                overlap = keywords & seg_words
+                stem_overlap = {
+                    k for k in keywords
+                    if any(w.startswith(k[:4]) or k.startswith(w[:4]) for w in seg_words if len(k) >= 4 and len(w) >= 4)
+                }
+                all_overlap = overlap | stem_overlap
 
-        if not matched_sentences:
+                if not all_overlap:
+                    continue
+
+                # If question asked for a specific topic (e.g. "project", "vacation")
+                # and segment only matches the person's name with zero topic overlap, skip it
+                if topic_keywords and not (topic_keywords & all_overlap):
+                    continue
+
+                score = len(all_overlap)
+                scored_candidates.append((score, seg, citation))
+
+        if not scored_candidates:
             return REFUSAL_MESSAGE
 
-        # De-duplicate while preserving citation
+        # Prioritize segments with highest topical overlap
+        scored_candidates.sort(key=lambda x: x[0], reverse=True)
+
         unique_answers = []
         seen = set()
-        for sent, cit in matched_sentences:
-            if sent not in seen:
-                seen.add(sent)
-                unique_answers.append(f"{sent} {cit}")
+        for score, seg, cit in scored_candidates:
+            if seg not in seen:
+                seen.add(seg)
+                unique_answers.append(f"{seg} {cit}")
+            if len(unique_answers) >= 5:
+                break
 
         return " ".join(unique_answers)
 

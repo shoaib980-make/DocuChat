@@ -58,5 +58,23 @@
     "source": "invoice_test.jpg",
     "page": 1,
     "session_id": null
+  },
+  {
+    "id": 8,
+    "document_id": "receipt_test.png",
+    "chunk_index": 0,
+    "content": "Image Document: receipt_test.png\nFormat: PNG, Dimensions: 200x100px, Mode: RGB",
+    "source": "receipt_test.png",
+    "page": 1,
+    "session_id": null
+  },
+  {
+    "id": 9,
+    "document_id": "invoice_test.jpg",
+    "chunk_index": 0,
+    "content": "Image Document: invoice_test.jpg\nFormat: JPEG, Dimensions: 150x150px, Mode: RGB",
+    "source": "invoice_test.jpg",
+    "page": 1,
+    "session_id": null
   }
 ]
