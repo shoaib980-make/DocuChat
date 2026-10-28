@@ -149,10 +149,38 @@ def list_documents(
     return {"documents": list(docs_map.values())}
 
 
-@app.post("/api/upload")
+@app.post(
+    "/api/upload",
+    openapi_extra={
+        "requestBody": {
+            "content": {
+                "multipart/form-data": {
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "file": {
+                                "type": "string",
+                                "format": "binary",
+                                "description": "Single document file to upload (PDF, DOCX, PNG, JPG, JPEG)",
+                            },
+                            "files": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string",
+                                    "format": "binary",
+                                },
+                                "description": "Multiple document files to upload",
+                            },
+                        },
+                    }
+                }
+            }
+        }
+    },
+)
 async def upload_documents(
-    file: UploadFile | None = File(None),
-    files: list[UploadFile] | None = File(None),
+    file: UploadFile | str | None = File(default=None),
+    files: list[UploadFile | str] | str | None = File(default=None),
     backend: str = "supabase",
     session_id: str | None = None,
 ):
@@ -161,10 +189,15 @@ async def upload_documents(
     Supports PDF, DOCX, PNG, JPG, and JPEG documents.
     """
     upload_list: list[UploadFile] = []
-    if files:
-        upload_list.extend([f for f in files if f.filename])
-    if file and file.filename:
+    if hasattr(file, "filename") and file.filename:
         upload_list.append(file)
+    if files:
+        if isinstance(files, list):
+            for f in files:
+                if hasattr(f, "filename") and f.filename:
+                    upload_list.append(f)
+        elif hasattr(files, "filename") and files.filename:
+            upload_list.append(files)
 
     if not upload_list:
         raise HTTPException(

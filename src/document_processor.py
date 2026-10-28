@@ -145,12 +145,24 @@ def extract_document(file_path: str | Path) -> list[dict[str, Any]]:
 
     elif extension == ".docx":
         document = Document(str(path))
-        paragraphs = [
-            paragraph.text.strip()
-            for paragraph in document.paragraphs
-            if paragraph.text.strip()
-        ]
-        text = "\n".join(paragraphs).strip()
+        extracted_lines = []
+        for paragraph in document.paragraphs:
+            if paragraph.text.strip():
+                extracted_lines.append(paragraph.text.strip())
+
+        # Also extract text from any tables in DOCX (vital for CVs, forms, resumes)
+        for table in document.tables:
+            for row in table.rows:
+                row_texts = [cell.text.strip() for cell in row.cells if cell.text.strip()]
+                # Deduplicate adjacent merged cells
+                deduped = []
+                for t in row_texts:
+                    if not deduped or deduped[-1] != t:
+                        deduped.append(t)
+                if deduped:
+                    extracted_lines.append(" | ".join(deduped))
+
+        text = "\n".join(extracted_lines).strip()
         if text:
             records.append({
                 "text": text,
